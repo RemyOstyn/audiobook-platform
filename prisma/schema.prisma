@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id           String        @id @db.Uuid
+  role         UserRole      @default(user)
+  display_name String?
+  phone        String?       @db.VarChar(20)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  audiobooks   Audiobook[]
+  cart_items   CartItem[]
+  orders       Order[]
+  user_library UserLibrary[]
+
+  @@map("profiles")
+}
+
+model Audiobook {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String
+  author           String
+  narrator         String?
+  isbn             String?         @db.VarChar(13)
+  publication_year Int?
+  description      String?
+  ai_summary       String?
+  price            Decimal         @db.Decimal(10, 2)
+  duration_seconds Int?
+  file_size_bytes  BigInt?
+  file_url         String
+  cover_image_url  String?
+  sample_url       String?
+  status           AudiobookStatus @default(processing)
+  categories       String[]        @default([])
+  language         String          @default("en") @db.VarChar(10)
+  created_by       String?         @db.Uuid
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+  api_usage        ApiUsage[]
+  creator          Profile?        @relation(fields: [created_by], references: [id])
+  cart_items       CartItem[]
+  order_items      OrderItem[]
+  processing_jobs  ProcessingJob[]
+  transcriptions   Transcription[]
+  user_library     UserLibrary[]
+
+  @@map("audiobooks")
+}
+
+model Transcription {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  audiobook_id       String    @db.Uuid
+  full_text          String?
+  word_count         Int?
+  language           String    @default("en") @db.VarChar(10)
+  confidence_score   Decimal?  @db.Decimal(3, 2)
+  processing_time_ms Int?
+  created_at         DateTime  @default(now())
+  audiobook          Audiobook @relation(fields: [audiobook_id], references: [id], onDelete: Cascade)
+
+  @@map("transcriptions")
+}
+
+model ProcessingJob {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  audiobook_id  String    @db.Uuid
+  job_type      JobType
+  status        JobStatus @default(pending)
+  progress      Int       @default(0)
+  error_message String?
+  retry_count   Int       @default(0)
+  metadata      Json      @default("{}")
+  started_at    DateTime?
+  completed_at  DateTime?
+  created_at    DateTime  @default(now())
+  audiobook     Audiobook @relation(fields: [audiobook_id], references: [id], onDelete: Cascade)
+
+  @@map("processing_jobs")
+}
+
+model CartItem {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String?   @db.Uuid
+  session_id   String?
+  audiobook_id String    @db.Uuid
+  added_at     DateTime  @default(now())
+  audiobook    Audiobook @relation(fields: [audiobook_id], references: [id], onDelete: Cascade)
+  user         Profile?  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, audiobook_id])
+  @@unique([session_id, audiobook_id])
+  @@map("cart_items")
+}
+
+model Order {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_number      String        @unique @db.VarChar(20)
+  user_id           String?       @db.Uuid
+  email             String
+  total_amount      Decimal       @db.Decimal(10, 2)
+  status            OrderStatus   @default(pending)
+  payment_method    String?       @db.VarChar(50)
+  payment_intent_id String?
+  metadata          Json          @default("{}")
+  completed_at      DateTime?
+  created_at        DateTime      @default(now())
+  order_items       OrderItem[]
+  user              Profile?      @relation(fields: [user_id], references: [id])
+  user_library      UserLibrary[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id     String    @db.Uuid
+  audiobook_id String    @db.Uuid
+  price        Decimal   @db.Decimal(10, 2)
+  created_at   DateTime  @default(now())
+  audiobook    Audiobook @relation(fields: [audiobook_id], references: [id])
+  order        Order     @relation(fields: [order_id], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model UserLibrary {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String    @db.Uuid
+  audiobook_id   String    @db.Uuid
+  order_id       String?   @db.Uuid
+  purchased_at   DateTime  @default(now())
+  last_accessed  DateTime?
+  download_count Int       @default(0)
+  audiobook      Audiobook @relation(fields: [audiobook_id], references: [id], onDelete: Cascade)
+  order          Order?    @relation(fields: [order_id], references: [id])
+  user           Profile   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, audiobook_id])
+  @@map("user_library")
+}
+
+model ApiUsage {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  service      String     @db.VarChar(50)
+  endpoint     String?    @db.VarChar(100)
+  tokens_used  Int?
+  cost_usd     Decimal?   @db.Decimal(10, 4)
+  audiobook_id String?    @db.Uuid
+  created_at   DateTime   @default(now())
+  audiobook    Audiobook? @relation(fields: [audiobook_id], references: [id])
+
+  @@map("api_usage")
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum AudiobookStatus {
+  draft
+  processing
+  active
+  inactive
+}
+
+enum JobType {
+  transcription
+  summary
+  categorization
+}
+
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum OrderStatus {
+  pending
+  completed
+  failed
+  refunded
+}
