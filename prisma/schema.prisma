@@ -15,6 +15,7 @@ model Profile {
   phone        String?       @db.VarChar(20)
   created_at   DateTime      @default(now())
   updated_at   DateTime      @updatedAt
+  
   audiobooks   Audiobook[]
   cart_items   CartItem[]
   orders       Order[]
