@@ -27,10 +27,10 @@ export function QuickActions() {
       href: "/admin/audiobooks"
     },
     {
-      title: "View Processing Queue",
-      description: "Monitor AI processing jobs",
+      title: "View Processing Jobs",
+      description: "Monitor AI processing jobs and transcriptions",
       icon: Activity,
-      href: "/admin/processing"
+      href: "/admin/processing-jobs"
     },
     {
       title: "Manage Users",
@@ -101,15 +101,15 @@ export function SystemOverview() {
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">AI Processing</span>
           <div className="flex items-center gap-2">
-            <div className="h-2 w-2 bg-yellow-500 rounded-full" />
-            <span className="text-sm text-muted-foreground">Phase 3</span>
+            <div className="h-2 w-2 bg-green-500 rounded-full" />
+            <span className="text-sm text-muted-foreground">Ready</span>
           </div>
         </div>
 
         <div className="pt-2 border-t">
           <p className="text-xs text-muted-foreground">
-            🎯 <strong>Phase 2 Progress:</strong> Admin dashboard with real-time statistics complete. 
-            Upload interface and audiobook management coming next.
+            ✅ <strong>Phase 3 Complete:</strong> AI-powered transcription and content generation with OpenAI Whisper & GPT-4. 
+            Background processing with Inngest now active.
           </p>
         </div>
       </CardContent>
