@@ -1,8 +1,23 @@
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { UserMenu } from "@/components/user-menu";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  let userProfile = null
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, display_name')
+      .eq('id', user.id)
+      .single()
+    userProfile = profile
+  }
+
   return (
     <main className="min-h-screen flex flex-col">
       <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
@@ -11,12 +26,24 @@ export default function Home() {
             <Link href="/">AudioBook Platform</Link>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/auth/login">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/auth/sign-up">
-              <Button>Sign Up</Button>
-            </Link>
+            {user ? (
+              <UserMenu 
+                user={{
+                  email: user.email!,
+                  displayName: userProfile?.display_name
+                }}
+                userRole={userProfile?.role}
+              />
+            ) : (
+              <>
+                <Link href="/auth/login">
+                  <Button variant="ghost">Sign In</Button>
+                </Link>
+                <Link href="/auth/sign-up">
+                  <Button>Sign Up</Button>
+                </Link>
+              </>
+            )}
             <ThemeSwitcher />
           </div>
         </div>
