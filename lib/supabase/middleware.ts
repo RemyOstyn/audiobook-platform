@@ -32,13 +32,12 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Do not run code between createServerClient and
-  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
+  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  // IMPORTANT: If you remove getClaims() and you use server-side rendering
-  // with the Supabase client, your users may be randomly logged out.
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
+  // IMPORTANT: Always use getUser() for server-side authentication verification
+  // as per Supabase documentation - never use getSession() or getClaims()
+  const { data: { user } } = await supabase.auth.getUser();
 
   // Check for admin-only routes
   if (request.nextUrl.pathname.startsWith("/admin")) {
@@ -48,11 +47,11 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
     
-    // Check admin role
+    // Simple admin check - just query the profiles table
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.sub)
+      .eq('id', user.id)
       .single()
     
     if (profile?.role !== 'admin') {
