@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
 
     const { fileName } = validation.data
 
-    // Generate unique file path
+    // Generate unique file path - store directly in bucket without subfolder
     const fileExtension = fileName.split('.').pop()
     const uniqueFileName = `${nanoid()}.${fileExtension}`
-    const filePath = `audiobooks/${uniqueFileName}`
+    const filePath = uniqueFileName
 
     // Create presigned URL for upload (expires in 1 hour)
     const { data: uploadData, error: uploadError } = await supabase.storage

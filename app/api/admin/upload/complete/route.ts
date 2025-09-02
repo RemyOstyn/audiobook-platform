@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PrismaClient } from '@prisma/client'
 import { uploadCompleteSchema } from '@/lib/validators/audiobook'
+import { inngest } from '@/lib/inngest/client'
 
 const prisma = new PrismaClient()
 
@@ -58,10 +59,11 @@ export async function POST(request: NextRequest) {
     } = validation.data
 
     // Verify file exists in Supabase Storage
+    // For new uploads, filePath is just the filename (no folder structure)
     const { data: fileData, error: fileError } = await supabase.storage
       .from('audiobooks')
-      .list(filePath.split('/')[0], {
-        search: filePath.split('/')[1]
+      .list('', {
+        search: filePath
       })
 
     if (fileError || !fileData || fileData.length === 0) {
@@ -91,8 +93,24 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // TODO: Queue AI processing job here (Phase 3)
-    // This would trigger audio analysis for duration, chapters, etc.
+    // Trigger AI processing job (Phase 3)
+    try {
+      await inngest.send({
+        name: "audiobook/uploaded",
+        data: {
+          audiobookId: audiobook.id,
+          fileName: filePath, // For new uploads, filePath is just the filename
+          fileSize: fileSize,
+          filePath: filePath, // Same as fileName for new direct uploads
+        },
+      });
+      
+      console.log(`AI processing job started for audiobook ${audiobook.id}`);
+    } catch (processingError) {
+      console.error('Failed to start processing job:', processingError);
+      // Don't fail the upload, but log the error
+      // The job can be manually triggered later from the admin dashboard
+    }
 
     return NextResponse.json({
       success: true,
