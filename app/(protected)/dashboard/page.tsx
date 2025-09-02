@@ -74,7 +74,7 @@ export default async function UserDashboard() {
               <div className="text-6xl mb-4">📖</div>
               <h3 className="text-lg font-semibold mb-2">No audiobooks yet</h3>
               <p className="text-muted-foreground mb-4">
-                You haven't purchased any audiobooks yet. Browse our catalog to get started!
+                You haven&apos;t purchased any audiobooks yet. Browse our catalog to get started!
               </p>
               <Link href="/browse">
                 <Button>Browse Audiobooks</Button>

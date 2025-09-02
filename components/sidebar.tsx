@@ -8,13 +8,10 @@ import { Separator } from "@/components/ui/separator"
 import { UserMenu } from "@/components/user-menu"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import {
-  BarChart3,
   Book,
-  Users,
   Settings,
   Menu,
   Library,
-  ShoppingCart,
   History,
   User
 } from "lucide-react"
@@ -28,29 +25,6 @@ interface SidebarProps {
   }
   userRole?: 'admin' | 'user'
 }
-
-const adminNavItems = [
-  {
-    title: "Dashboard",
-    href: "/admin",
-    icon: BarChart3
-  },
-  {
-    title: "Audiobooks",
-    href: "/admin/audiobooks",
-    icon: Book
-  },
-  {
-    title: "Users",
-    href: "/admin/users",
-    icon: Users
-  },
-  {
-    title: "Settings",
-    href: "/admin/settings",
-    icon: Settings
-  }
-]
 
 const userNavItems = [
   {
@@ -75,10 +49,22 @@ const userNavItems = [
   }
 ]
 
+const adminMenuItem = {
+  title: "Admin",
+  href: "/admin",
+  icon: Settings
+}
+
 function SidebarContent({ user, userRole, className }: SidebarProps & { className?: string }) {
   const pathname = usePathname()
-  const navItems = userRole === 'admin' ? adminNavItems : userNavItems
-  const title = userRole === 'admin' ? 'Admin Panel' : 'AudioBook Platform'
+  
+  // Always show user nav items, but add admin menu if user is admin
+  const navItems = [...userNavItems]
+  if (userRole === 'admin') {
+    navItems.push(adminMenuItem)
+  }
+  
+  const title = 'AudioBook Platform'
 
   return (
     <div className={cn("flex h-full flex-col", className)}>
