@@ -7,9 +7,10 @@ import { AudiobookGrid, type Audiobook } from './audiobook-grid'
 
 interface BrowsePageClientProps {
   audiobooks: Audiobook[]
+  ownedAudiobookIds: string[]
 }
 
-export function BrowsePageClient({ audiobooks }: BrowsePageClientProps) {
+export function BrowsePageClient({ audiobooks, ownedAudiobookIds }: BrowsePageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
@@ -58,7 +59,7 @@ export function BrowsePageClient({ audiobooks }: BrowsePageClientProps) {
         onToggleFilters={() => setShowFilters(!showFilters)}
       />
       
-      <AudiobookGrid audiobooks={filteredAudiobooks} />
+      <AudiobookGrid audiobooks={filteredAudiobooks} ownedAudiobookIds={ownedAudiobookIds} />
     </div>
   )
 }

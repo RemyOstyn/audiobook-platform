@@ -18,6 +18,7 @@ interface AddToCartButtonProps {
   variant?: 'default' | 'outline' | 'ghost'
   className?: string
   showIcon?: boolean
+  isOwned?: boolean
 }
 
 export function AddToCartButton({
@@ -25,7 +26,8 @@ export function AddToCartButton({
   size = 'default',
   variant = 'default',
   className,
-  showIcon = true
+  showIcon = true,
+  isOwned = false
 }: AddToCartButtonProps) {
   const { addItem, isLoading, isItemInCart } = useCartStore()
   const [isAdding, setIsAdding] = useState(false)
@@ -35,6 +37,11 @@ export function AddToCartButton({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    if (isOwned) {
+      toast.info('You already own this audiobook')
+      return
+    }
     
     if (isInCart) {
       toast.info('Item already in cart')
@@ -59,19 +66,22 @@ export function AddToCartButton({
   return (
     <Button
       onClick={handleAddToCart}
-      disabled={loading || isInCart}
+      disabled={loading || isInCart || isOwned}
       size={size}
-      variant={isInCart ? 'outline' : variant}
+      variant={isOwned || isInCart ? 'outline' : variant}
       className={className}
     >
-      {showIcon && <ShoppingCart className="h-4 w-4 mr-2" />}
+      {showIcon && !isOwned && <ShoppingCart className="h-4 w-4 mr-2" />}
+      {showIcon && isOwned && <span className="mr-2">✓</span>}
       {loading 
         ? 'Adding...' 
-        : isInCart 
-          ? 'In Cart' 
-          : size === 'sm' 
-            ? 'Add' 
-            : 'Add to Cart'
+        : isOwned
+          ? 'Already Owned'
+          : isInCart 
+            ? 'In Cart' 
+            : size === 'sm' 
+              ? 'Add' 
+              : 'Add to Cart'
       }
     </Button>
   )

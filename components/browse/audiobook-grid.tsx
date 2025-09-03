@@ -22,9 +22,10 @@ export interface Audiobook {
 interface AudiobookGridProps {
   audiobooks: Audiobook[]
   isLoading?: boolean
+  ownedAudiobookIds?: string[]
 }
 
-export function AudiobookGrid({ audiobooks, isLoading }: AudiobookGridProps) {
+export function AudiobookGrid({ audiobooks, isLoading, ownedAudiobookIds = [] }: AudiobookGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -57,13 +58,13 @@ export function AudiobookGrid({ audiobooks, isLoading }: AudiobookGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
       {audiobooks.map((book) => (
         <Link key={book.id} href={`/audiobooks/${book.id}`}>
           <Card className="group overflow-hidden border-0 bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer">
             <div className="relative">
             {/* Cover Image */}
-            <div className="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
+            <div className="aspect-[3/4] bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
               {book.coverUrl ? (
                 <Image
                   src={book.coverUrl}
@@ -90,13 +91,14 @@ export function AudiobookGrid({ audiobooks, isLoading }: AudiobookGridProps) {
                 }}
                 size="sm"
                 className="shadow-lg"
+                isOwned={ownedAudiobookIds.includes(book.id.toString())}
               />
             </div>
           </div>
           
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             {/* Categories */}
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap gap-1 mb-1">
               {book.categories.slice(0, 3).map((category) => (
                 <Badge key={category} variant="secondary" className="text-xs px-2 py-0.5 2xl:block hidden">
                   {category}
@@ -123,10 +125,10 @@ export function AudiobookGrid({ audiobooks, isLoading }: AudiobookGridProps) {
             <h3 className="font-semibold text-gray-900 line-clamp-2 mb-1 text-sm leading-tight">
               {book.title}
             </h3>
-            <p className="text-xs text-gray-600 mb-2">by {book.author}</p>
+            <p className="text-xs text-gray-600 mb-1">by {book.author}</p>
             
             {/* Rating and Duration */}
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-2">
               {book.rating && (
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 text-yellow-400 fill-current" />
@@ -139,7 +141,7 @@ export function AudiobookGrid({ audiobooks, isLoading }: AudiobookGridProps) {
             </div>
             
             {/* Description */}
-            <p className="text-xs text-gray-500 line-clamp-4 mb-3">
+            <p className="text-xs text-gray-500 line-clamp-2 mb-2">
               {book.description}
             </p>
             
@@ -160,6 +162,7 @@ export function AudiobookGrid({ audiobooks, isLoading }: AudiobookGridProps) {
                 variant="outline"
                 className="text-xs"
                 showIcon={false}
+                isOwned={ownedAudiobookIds.includes(book.id.toString())}
               />
             </div>
           </CardContent>

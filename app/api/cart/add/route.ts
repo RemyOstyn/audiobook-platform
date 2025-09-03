@@ -39,6 +39,23 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // Check if user already owns this audiobook (only for authenticated users)
+    if (user) {
+      const { data: ownedAudiobook } = await supabase
+        .from('user_library')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('audiobook_id', audiobookId)
+        .single()
+      
+      if (ownedAudiobook) {
+        return NextResponse.json(
+          { error: 'You already own this audiobook' },
+          { status: 400 }
+        )
+      }
+    }
+    
     // Check if item already exists in cart
     let existingItemQuery = supabase
       .from('cart_items')
