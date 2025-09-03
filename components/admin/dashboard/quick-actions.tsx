@@ -1,118 +1,105 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
   Upload,
   Book,
   Users,
-  Activity,
-  ListMusic
+  Activity
 } from 'lucide-react'
 import Link from 'next/link'
 
 export function QuickActions() {
   const actions = [
     {
-      title: "Upload Audiobook",
-      description: "Add a new audiobook to the platform",
+      title: "Upload",
+      description: "Add new audiobook",
       icon: Upload,
       href: "/admin/audiobooks/new",
       primary: true
     },
     {
-      title: "Manage Audiobooks",
-      description: "View and edit all audiobooks",
+      title: "Audiobooks",
+      description: "Manage content",
       icon: Book,
       href: "/admin/audiobooks"
     },
     {
-      title: "View Processing Jobs",
-      description: "Monitor AI processing jobs and transcriptions",
+      title: "Processing",
+      description: "Monitor jobs",
       icon: Activity,
       href: "/admin/processing-jobs"
     },
     {
-      title: "Manage Users",
-      description: "View and manage user accounts",
+      title: "Users",
+      description: "User management",
       icon: Users,
       href: "/admin/users"
     }
   ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Quick Actions</CardTitle>
-        <CardDescription>Common administrative tasks</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-2">
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-medium text-gray-600 mb-1">Quick Actions</h3>
+        <p className="text-xs text-gray-500">Common administrative tasks</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
         {actions.map((action) => {
           const Icon = action.icon
           return (
             <Link key={action.href} href={action.href}>
               <Button
-                variant={action.primary ? "default" : "ghost"}
-                className="w-full justify-start h-auto p-4"
+                variant={action.primary ? "default" : "outline"}
+                size="sm"
+                className="h-auto p-3 flex flex-col items-center gap-1 min-w-[80px]"
               >
-                <div className="flex items-center gap-3 w-full">
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  <div className="text-left">
-                    <div className="font-medium">{action.title}</div>
-                    <div className="text-sm opacity-70">{action.description}</div>
-                  </div>
+                <Icon className="h-4 w-4" />
+                <div className="text-center">
+                  <div className="text-xs font-medium leading-tight">{action.title}</div>
+                  <div className="text-xs opacity-70 leading-tight">{action.description}</div>
                 </div>
               </Button>
             </Link>
           )
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
 export function SystemOverview() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ListMusic className="h-5 w-5" />
-          System Overview
-        </CardTitle>
-        <CardDescription>Current system status and health</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-medium text-gray-600 mb-1">System Status</h3>
+        <p className="text-xs text-gray-500">Current system health</p>
+      </div>
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Database</span>
-          <div className="flex items-center gap-2">
+          <span className="text-xs font-medium">Database</span>
+          <div className="flex items-center gap-1">
             <div className="h-2 w-2 bg-green-500 rounded-full" />
-            <span className="text-sm text-muted-foreground">Connected</span>
+            <span className="text-xs text-muted-foreground">Online</span>
           </div>
         </div>
         
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Storage</span>
-          <div className="flex items-center gap-2">
+          <span className="text-xs font-medium">Storage</span>
+          <div className="flex items-center gap-1">
             <div className="h-2 w-2 bg-green-500 rounded-full" />
-            <span className="text-sm text-muted-foreground">Available</span>
+            <span className="text-xs text-muted-foreground">Available</span>
           </div>
         </div>
         
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">AI Processing</span>
-          <div className="flex items-center gap-2">
+          <span className="text-xs font-medium">AI Processing</span>
+          <div className="flex items-center gap-1">
             <div className="h-2 w-2 bg-green-500 rounded-full" />
-            <span className="text-sm text-muted-foreground">Ready</span>
+            <span className="text-xs text-muted-foreground">Ready</span>
           </div>
         </div>
-
-        <div className="pt-2 border-t">
-          <p className="text-xs text-muted-foreground">
-            ✅ <strong>Phase 3 Complete:</strong> AI-powered transcription and content generation with OpenAI Whisper & GPT-4. 
-            Background processing with Inngest now active.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
