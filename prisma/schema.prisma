@@ -182,6 +182,10 @@ enum JobType {
 enum JobStatus {
   pending
   processing
+  downloading
+  chunking
+  transcribing
+  generating_content
   completed
   failed
 }
