@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { UserMenu } from "@/components/user-menu"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { CartIcon } from "@/components/cart-icon"
 import {
   Book,
   Settings,
@@ -69,10 +70,11 @@ function SidebarContent({ user, userRole, className }: SidebarProps & { classNam
   return (
     <div className={cn("flex h-full flex-col", className)}>
       {/* Header */}
-      <div className="flex h-16 items-center border-b px-6">
+      <div className="flex h-16 items-center justify-between border-b px-6">
         <Link href="/" className="flex items-center space-x-2">
           <div className="text-xl font-bold">{title}</div>
         </Link>
+        <CartIcon />
       </div>
 
       {/* Navigation */}

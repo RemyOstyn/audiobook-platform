@@ -4,7 +4,8 @@ import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Book, ShoppingCart, Star, Clock, User } from 'lucide-react'
+import { AddToCartButton } from '@/components/add-to-cart-button'
+import { Book, Star, Clock, User } from 'lucide-react'
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600)
@@ -73,10 +74,17 @@ export default async function AudiobookDetailPage({
                   </span>
                 </div>
                 <div className="space-y-3">
-                  <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700">
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
-                  </Button>
+                  <AddToCartButton
+                    audiobook={{
+                      id: audiobook.id,
+                      title: audiobook.title,
+                      author: audiobook.author,
+                      price: parseFloat(audiobook.price),
+                      coverUrl: audiobook.cover_image_url || ''
+                    }}
+                    size="lg"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  />
                   <Button size="lg" variant="outline" className="w-full">
                     Preview
                   </Button>

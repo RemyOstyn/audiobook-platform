@@ -4,8 +4,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Book, ShoppingCart, Star } from 'lucide-react'
+import { AddToCartButton } from '@/components/add-to-cart-button'
+import { Book, Star } from 'lucide-react'
 
 export interface Audiobook {
   id: string | number
@@ -80,10 +80,17 @@ export function AudiobookGrid({ audiobooks, isLoading }: AudiobookGridProps) {
             
             {/* Quick Add Overlay */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <Button size="sm" className="shadow-lg">
-                <ShoppingCart className="h-4 w-4 mr-1" />
-                Quick Add
-              </Button>
+              <AddToCartButton 
+                audiobook={{
+                  id: book.id.toString(),
+                  title: book.title,
+                  author: book.author,
+                  price: book.price,
+                  coverUrl: book.coverUrl
+                }}
+                size="sm"
+                className="shadow-lg"
+              />
             </div>
           </div>
           
@@ -141,9 +148,19 @@ export function AudiobookGrid({ audiobooks, isLoading }: AudiobookGridProps) {
               <div className="flex items-baseline gap-1">
                 <span className="text-lg font-bold text-gray-900">${book.price}</span>
               </div>
-              <Button size="sm" variant="outline" className="text-xs">
-                Add to Cart
-              </Button>
+              <AddToCartButton
+                audiobook={{
+                  id: book.id.toString(),
+                  title: book.title,
+                  author: book.author,
+                  price: book.price,
+                  coverUrl: book.coverUrl
+                }}
+                size="sm"
+                variant="outline"
+                className="text-xs"
+                showIcon={false}
+              />
             </div>
           </CardContent>
         </Card>

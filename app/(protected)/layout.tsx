@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
+import { CartIcon } from "@/components/cart-icon";
 
 export default async function ProtectedLayout({
   children,
@@ -36,10 +37,11 @@ export default async function ProtectedLayout({
       <main className="flex-1 overflow-auto">
         {/* Top bar for mobile */}
         <div className="md:hidden h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex h-16 items-center px-16">
+          <div className="flex h-16 items-center justify-between px-16 pr-6">
             <h1 className="font-semibold">
               {profile?.role === 'admin' ? 'Admin Panel' : 'AudioBook Platform'}
             </h1>
+            <CartIcon />
           </div>
         </div>
         
