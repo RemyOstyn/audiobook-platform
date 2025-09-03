@@ -61,7 +61,7 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
       title: "Recent Activity",
       value: stats.activity.recentDownloads,
       subtitle: stats.activity.lastPurchase
-        ? `Last purchase ${formatDistanceToNow(new Date(stats.activity.lastPurchase), { addSuffix: true })}`
+        ? `Last purchase ${formatDistanceToNow(new Date(stats.activity.lastPurchase + 'Z'), { addSuffix: true })}`
         : 'No recent activity',
       icon: TrendingUp,
       gradient: "from-orange-500 to-orange-600",

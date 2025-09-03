@@ -29,9 +29,14 @@ interface SidebarProps {
 
 const userNavItems = [
   {
-    title: "My Library",
+    title: "Dashboard",
     href: "/dashboard",
     icon: Library
+  },
+  {
+    title: "My Library",
+    href: "/dashboard/library",
+    icon: Book
   },
   {
     title: "Browse",

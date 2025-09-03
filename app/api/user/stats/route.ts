@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { UserStats } from '@/lib/types/user'
 
+interface AudiobookData {
+  id: string
+  title: string
+  author: string
+}
+
+interface OrderItemData {
+  id: string
+  price: string
+  audiobook: AudiobookData[]
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -12,22 +24,84 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // For now, return placeholder data since we don't have user purchases implemented yet
-    // This will be populated in Phase 4 (Payment & User Experience)
+    // Fetch user's purchases statistics
+    const [libraryResult, ordersResult, recentActivityResult] = await Promise.all([
+      // Total purchased audiobooks
+      supabase
+        .from('user_library')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id),
+      
+      // Order statistics
+      supabase
+        .from('orders')
+        .select('total_amount, completed_at', { count: 'exact' })
+        .eq('user_id', user.id)
+        .eq('status', 'completed'),
+      
+      // Recent activity - last 5 purchases
+      supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          total_amount,
+          completed_at,
+          order_items (
+            id,
+            price,
+            audiobook:audiobooks (
+              id,
+              title,
+              author
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false })
+        .limit(5)
+    ])
+
+    // Calculate totals
+    const totalPurchased = libraryResult.count || 0
+    const totalAmount = ordersResult.data?.reduce((sum, order) => 
+      sum + parseFloat(order.total_amount), 0) || 0
+    const orderCount = ordersResult.count || 0
+    
+    // Get last purchase date
+    const lastPurchase = ordersResult.data?.[0]?.completed_at
+
+    // Format recent activity - flatten order items into individual purchase records
+    const recentPurchases = recentActivityResult.data?.flatMap(order => 
+      (order.order_items || []).map((item: OrderItemData) => ({
+        id: `${order.id}-${item.id}`, // Unique ID for each item
+        audiobook: {
+          id: item.audiobook[0]?.id || '',
+          title: item.audiobook[0]?.title || 'Unknown',
+          author: item.audiobook[0]?.author || 'Unknown',
+          coverImageUrl: null // This field wasn't queried in the select
+        },
+        price: parseFloat(item.price),
+        purchasedAt: order.completed_at,
+        orderNumber: order.order_number
+      }))
+    ) || []
+
     const stats: UserStats = {
       library: {
-        totalPurchased: 0
+        totalPurchased
       },
       purchases: {
-        totalAmount: 0,
-        orderCount: 0
+        totalAmount,
+        orderCount
       },
       activity: {
-        recentDownloads: 0,
-        lastPurchase: undefined
+        recentDownloads: 0, // This would need download tracking
+        lastPurchase
       },
       recentActivity: {
-        purchases: []
+        purchases: recentPurchases
       }
     }
 

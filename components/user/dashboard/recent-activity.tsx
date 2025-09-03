@@ -79,13 +79,16 @@ export function RecentActivity({ stats, isLoading }: RecentActivityProps) {
       
       <div className="space-y-3">
         {recentPurchases.map((purchase) => {
+          // Add null safety checks
+          if (!purchase.audiobook) return null
+          
           return (
             <div key={purchase.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
               <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {purchase.audiobook.coverImageUrl ? (
+                {purchase.audiobook?.coverImageUrl ? (
                   <Image
                     src={purchase.audiobook.coverImageUrl}
-                    alt={purchase.audiobook.title}
+                    alt={purchase.audiobook.title || 'Audiobook cover'}
                     width={48}
                     height={48}
                     className="h-12 w-12 rounded-lg object-cover"
@@ -96,21 +99,21 @@ export function RecentActivity({ stats, isLoading }: RecentActivityProps) {
               </div>
               
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{purchase.audiobook.title}</p>
-                <p className="text-xs text-muted-foreground truncate">by {purchase.audiobook.author}</p>
+                <p className="text-sm font-medium truncate">{purchase.audiobook?.title || 'Unknown Title'}</p>
+                <p className="text-xs text-muted-foreground truncate">by {purchase.audiobook?.author || 'Unknown Author'}</p>
                 <p className="text-xs text-muted-foreground">
-                  Order #{purchase.orderNumber}
+                  Order #{purchase.orderNumber || 'Unknown'}
                 </p>
               </div>
               
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(purchase.purchasedAt), { addSuffix: true })}
+                  {purchase.purchasedAt ? formatDistanceToNow(new Date(purchase.purchasedAt + 'Z'), { addSuffix: true }) : 'Unknown date'}
                 </span>
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="text-xs font-medium text-green-600">
-                    ${purchase.price.toFixed(2)}
+                    ${(purchase.price || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
