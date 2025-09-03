@@ -14,12 +14,14 @@ interface MetadataFormProps {
   onSubmit: (data: MetadataForm & { coverImageUrl?: string }) => void
   isSubmitting?: boolean
   defaultValues?: Partial<MetadataForm & { coverImageUrl?: string }>
+  compact?: boolean
 }
 
 export function AudiobookMetadataForm({
   onSubmit,
   isSubmitting = false,
-  defaultValues = {}
+  defaultValues = {},
+  compact = false
 }: MetadataFormProps) {
   const {
     register,
@@ -51,54 +53,62 @@ export function AudiobookMetadataForm({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Upload className="h-5 w-5" />
-          <span>Audiobook Details</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      {!compact && (
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center space-x-2">
+            <Upload className="h-4 w-4" />
+            <span>Audiobook Details</span>
+          </CardTitle>
+        </CardHeader>
+      )}
+      <CardContent className={compact ? "p-4" : "p-6"}>
+        {compact && (
+          <h3 className="text-sm font-medium mb-3">Audiobook Details</h3>
+        )}
+        <form onSubmit={handleSubmit(handleFormSubmit)} className={compact ? "space-y-3" : "space-y-6"}>
           {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+          <div className={compact ? "space-y-1" : "space-y-2"}>
+            <Label htmlFor="title" className={compact ? "text-xs" : undefined}>Title *</Label>
             <Input
               id="title"
               placeholder="Enter audiobook title"
+              className={compact ? "text-sm" : undefined}
               {...register("title")}
               disabled={isSubmitting}
             />
             {errors.title && (
-              <p className="text-sm text-red-600">{errors.title.message}</p>
+              <p className="text-xs text-red-600">{errors.title.message}</p>
             )}
           </div>
 
           {/* Author */}
-          <div className="space-y-2">
-            <Label htmlFor="author">Author *</Label>
+          <div className={compact ? "space-y-1" : "space-y-2"}>
+            <Label htmlFor="author" className={compact ? "text-xs" : undefined}>Author *</Label>
             <Input
               id="author"
               placeholder="Enter author name"
+              className={compact ? "text-sm" : undefined}
               {...register("author")}
               disabled={isSubmitting}
             />
             {errors.author && (
-              <p className="text-sm text-red-600">{errors.author.message}</p>
+              <p className="text-xs text-red-600">{errors.author.message}</p>
             )}
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className={compact ? "text-xs" : undefined}>Description</Label>
             <Textarea
               id="description"
               placeholder="Enter audiobook description (optional)"
-              rows={4}
+              rows={compact ? 2 : 4}
+              className={compact ? "text-sm" : undefined}
               {...register("description")}
               disabled={isSubmitting}
             />
             {errors.description && (
-              <p className="text-sm text-red-600">{errors.description.message}</p>
+              <p className="text-xs text-red-600">{errors.description.message}</p>
             )}
           </div>
 

@@ -141,33 +141,49 @@ export function UploadPageClient() {
 
       case 'metadata':
         return (
-          <div className="space-y-6">
-            <UploadDropzone
-              file={selectedFile}
-              onFileSelect={handleFileSelect}
-              onFileRemove={handleFileRemove}
-            />
-            <AudiobookMetadataForm
-              onSubmit={handleMetadataSubmit}
-              isSubmitting={isProcessing}
-            />
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* File Upload - Left Column (Compact) */}
+            <div className="lg:col-span-2">
+              <UploadDropzone
+                file={selectedFile}
+                onFileSelect={handleFileSelect}
+                onFileRemove={handleFileRemove}
+                compact={true}
+              />
+            </div>
+            {/* Metadata Form - Right Column */}
+            <div className="lg:col-span-3">
+              <AudiobookMetadataForm
+                onSubmit={handleMetadataSubmit}
+                isSubmitting={isProcessing}
+                compact={true}
+              />
+            </div>
           </div>
         )
 
       case 'uploading':
         return (
-          <div className="space-y-6">
-            <UploadDropzone
-              file={selectedFile}
-              onFileSelect={handleFileSelect}
-              onFileRemove={handleFileRemove}
-              isUploading={true}
-              uploadProgress={uploadProgress}
-            />
-            <AudiobookMetadataForm
-              onSubmit={handleMetadataSubmit}
-              isSubmitting={true}
-            />
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* Upload Progress - Left Column */}
+            <div className="lg:col-span-2">
+              <UploadDropzone
+                file={selectedFile}
+                onFileSelect={handleFileSelect}
+                onFileRemove={handleFileRemove}
+                isUploading={true}
+                uploadProgress={uploadProgress}
+                compact={true}
+              />
+            </div>
+            {/* Form - Right Column (Disabled during upload) */}
+            <div className="lg:col-span-3">
+              <AudiobookMetadataForm
+                onSubmit={handleMetadataSubmit}
+                isSubmitting={true}
+                compact={true}
+              />
+            </div>
           </div>
         )
 
@@ -204,41 +220,39 @@ export function UploadPageClient() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Navigation */}
-      <div className="flex items-center space-x-4">
+    <div className="max-w-7xl mx-auto space-y-4">
+      {/* Compact Navigation */}
+      <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/admin/audiobooks">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Audiobooks
+            Back
           </Link>
         </Button>
+        {step !== 'success' && (
+          <div className="flex items-center space-x-2 text-xs">
+            <div className={`flex items-center space-x-1 ${step === 'file' ? 'text-blue-600' : 'text-gray-400'}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium
+                ${step === 'file' ? 'bg-blue-600 text-white' : 
+                  ['metadata', 'uploading'].includes(step) ? 'bg-green-600 text-white' : 
+                  'bg-gray-200 text-gray-500'}`}>
+                1
+              </div>
+              <span>File</span>
+            </div>
+            <div className="w-4 h-px bg-gray-300" />
+            <div className={`flex items-center space-x-1 ${['metadata', 'uploading'].includes(step) ? 'text-blue-600' : 'text-gray-400'}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium
+                ${step === 'metadata' ? 'bg-blue-600 text-white' :
+                  step === 'uploading' ? 'bg-green-600 text-white' :
+                  'bg-gray-200 text-gray-500'}`}>
+                2
+              </div>
+              <span>Details</span>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Progress Indicator */}
-      {step !== 'success' && (
-        <div className="flex items-center justify-center space-x-4 py-4">
-          <div className={`flex items-center space-x-2 ${step === 'file' ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-              ${step === 'file' ? 'bg-blue-600 text-white' : 
-                ['metadata', 'uploading'].includes(step) ? 'bg-green-600 text-white' : 
-                'bg-gray-200 text-gray-500'}`}>
-              1
-            </div>
-            <span className="text-sm">Choose File</span>
-          </div>
-          <div className="w-8 h-px bg-gray-300" />
-          <div className={`flex items-center space-x-2 ${['metadata', 'uploading'].includes(step) ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-              ${step === 'metadata' ? 'bg-blue-600 text-white' :
-                step === 'uploading' ? 'bg-green-600 text-white' :
-                'bg-gray-200 text-gray-500'}`}>
-              2
-            </div>
-            <span className="text-sm">Add Details</span>
-          </div>
-        </div>
-      )}
 
       {/* Main Content */}
       {renderStep()}

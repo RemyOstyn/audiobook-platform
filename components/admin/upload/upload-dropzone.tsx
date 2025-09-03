@@ -15,6 +15,7 @@ interface UploadDropzoneProps {
   file: File | null
   isUploading?: boolean
   uploadProgress?: number
+  compact?: boolean
 }
 
 export function UploadDropzone({
@@ -22,7 +23,8 @@ export function UploadDropzone({
   onFileRemove,
   file,
   isUploading = false,
-  uploadProgress = 0
+  uploadProgress = 0,
+  compact = false
 }: UploadDropzoneProps) {
   const [validationError, setValidationError] = useState<string | null>(null)
 
@@ -80,61 +82,122 @@ export function UploadDropzone({
   if (file) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0">
-                  {isUploading ? (
-                    <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
-                      <Upload className="h-5 w-5 text-blue-600 animate-pulse" />
-                    </div>
-                  ) : uploadProgress === 100 ? (
-                    <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center">
-                      <FileAudio className="h-5 w-5 text-gray-600" />
-                    </div>
+        <CardContent className={compact ? "p-4" : "p-6"}>
+          <div className={compact ? "space-y-2" : "space-y-4"}>
+            {compact ? (
+              // Compact layout
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div className="flex-shrink-0">
+                    {isUploading ? (
+                      <div className="h-6 w-6 rounded-full bg-blue-50 flex items-center justify-center">
+                        <Upload className="h-3 w-3 text-blue-600 animate-pulse" />
+                      </div>
+                    ) : uploadProgress === 100 ? (
+                      <div className="h-6 w-6 rounded-full bg-green-50 flex items-center justify-center">
+                        <CheckCircle className="h-3 w-3 text-green-600" />
+                      </div>
+                    ) : (
+                      <div className="h-6 w-6 rounded-full bg-gray-50 flex items-center justify-center">
+                        <FileAudio className="h-3 w-3 text-gray-600" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-gray-900 truncate">
+                      {file.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(file.size)}
+                    </p>
+                  </div>
+                  {!isUploading && uploadProgress !== 100 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onFileRemove}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {file.name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatFileSize(file.size)} • {file.type || 'Audio file'}
-                  </p>
-                </div>
-              </div>
-              {!isUploading && uploadProgress !== 100 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onFileRemove}
-                  className="flex-shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            
-            {isUploading && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Uploading...</span>
-                  <span>{uploadProgress}%</span>
-                </div>
-                <Progress value={uploadProgress} className="h-2" />
-              </div>
-            )}
+                
+                {isUploading && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Uploading...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-1" />
+                  </div>
+                )}
 
-            {uploadProgress === 100 && (
-              <div className="flex items-center space-x-2 text-sm text-green-600">
-                <CheckCircle className="h-4 w-4" />
-                <span>Upload complete</span>
+                {uploadProgress === 100 && (
+                  <div className="flex items-center space-x-1 text-xs text-green-600">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Complete</span>
+                  </div>
+                )}
               </div>
+            ) : (
+              // Full layout
+              <>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      {isUploading ? (
+                        <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
+                          <Upload className="h-5 w-5 text-blue-600 animate-pulse" />
+                        </div>
+                      ) : uploadProgress === 100 ? (
+                        <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center">
+                          <FileAudio className="h-5 w-5 text-gray-600" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {file.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatFileSize(file.size)} • {file.type || 'Audio file'}
+                      </p>
+                    </div>
+                  </div>
+                  {!isUploading && uploadProgress !== 100 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onFileRemove}
+                      className="flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                {isUploading && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Uploading...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
+
+                {uploadProgress === 100 && (
+                  <div className="flex items-center space-x-2 text-sm text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Upload complete</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </CardContent>
