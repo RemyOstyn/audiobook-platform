@@ -138,14 +138,15 @@ export async function GET() {
           title: book.title,
           author: book.author,
           status: book.status,
-          createdAt: book.created_at
+          created_at: book.created_at
         })),
         processingJobs: recentJobs.map(job => ({
           id: job.id,
+          job_type: job.job_type,
           audiobookId: job.audiobook_id,
           status: job.status,
           progress: job.progress,
-          createdAt: job.created_at,
+          created_at: job.created_at,
           audiobook: job.audiobook
         }))
       }
