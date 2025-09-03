@@ -31,7 +31,7 @@ export function UploadPageClient() {
     setUploadProgress(0)
   }
 
-  const handleMetadataSubmit = async (metadata: MetadataForm & { coverImageUrl?: string }) => {
+  const handleMetadataSubmit = async (metadata: MetadataForm & { coverImageUrl?: string, coverImageFile?: File }) => {
     if (!selectedFile) {
       toast.error('No file selected')
       return
@@ -41,7 +41,28 @@ export function UploadPageClient() {
     setIsProcessing(true)
 
     try {
-      // Step 1: Get presigned URL
+      let coverImageUrl = metadata.coverImageUrl
+
+      // Step 1: Upload cover image if provided
+      if (metadata.coverImageFile) {
+        const coverFormData = new FormData()
+        coverFormData.append('file', metadata.coverImageFile)
+
+        const coverResponse = await fetch('/api/admin/upload/cover', {
+          method: 'POST',
+          body: coverFormData
+        })
+
+        if (!coverResponse.ok) {
+          const error = await coverResponse.json()
+          throw new Error(error.error || 'Failed to upload cover image')
+        }
+
+        const { url } = await coverResponse.json()
+        coverImageUrl = url
+      }
+
+      // Step 2: Get presigned URL for audiobook
       const presignedResponse = await fetch('/api/admin/upload/presigned', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,7 +80,7 @@ export function UploadPageClient() {
 
       const { uploadUrl, filePath } = await presignedResponse.json()
 
-      // Step 2: Upload file to Supabase Storage
+      // Step 3: Upload audiobook file to Supabase Storage
       const uploadRequest = new XMLHttpRequest()
       
       uploadRequest.upload.addEventListener('progress', (event) => {
@@ -72,7 +93,7 @@ export function UploadPageClient() {
       uploadRequest.addEventListener('load', async () => {
         if (uploadRequest.status === 200) {
           try {
-            // Step 3: Complete upload and create audiobook record
+            // Step 4: Complete upload and create audiobook record
             const completeResponse = await fetch('/api/admin/upload/complete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -85,7 +106,7 @@ export function UploadPageClient() {
                 author: metadata.author,
                 description: metadata.description,
                 price: metadata.price,
-                coverImageUrl: metadata.coverImageUrl
+                coverImageUrl: coverImageUrl
               })
             })
 

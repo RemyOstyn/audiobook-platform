@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,10 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { MetadataForm, metadataFormSchema } from "@/lib/validators/audiobook"
-import { Upload, DollarSign } from "lucide-react"
+import { Upload, DollarSign, X } from "lucide-react"
+import Image from "next/image"
 
 interface MetadataFormProps {
-  onSubmit: (data: MetadataForm & { coverImageUrl?: string }) => void
+  onSubmit: (data: MetadataForm & { coverImageUrl?: string, coverImageFile?: File }) => void
   isSubmitting?: boolean
   defaultValues?: Partial<MetadataForm & { coverImageUrl?: string }>
   compact?: boolean
@@ -23,6 +25,9 @@ export function AudiobookMetadataForm({
   defaultValues = {},
   compact = false
 }: MetadataFormProps) {
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null)
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null)
+
   const {
     register,
     handleSubmit,
@@ -44,10 +49,35 @@ export function AudiobookMetadataForm({
   const title = watch("title")
   const author = watch("author")
 
+  const handleCoverImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        return
+      }
+      
+      setCoverImageFile(file)
+      
+      // Create preview URL
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setCoverImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeCoverImage = () => {
+    setCoverImageFile(null)
+    setCoverImagePreview(null)
+  }
+
   const handleFormSubmit = (data: MetadataForm) => {
     onSubmit({
       ...data,
-      coverImageUrl: data.coverImageUrl?.trim() || undefined
+      coverImageUrl: data.coverImageUrl?.trim() || undefined,
+      coverImageFile: coverImageFile || undefined
     })
   }
 
@@ -134,21 +164,61 @@ export function AudiobookMetadataForm({
             )}
           </div>
 
-          {/* Cover Image URL (optional) */}
+          {/* Cover Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="coverImageUrl">Cover Image URL</Label>
-            <Input
-              id="coverImageUrl"
-              type="url"
-              placeholder="https://example.com/cover.jpg (optional)"
-              {...register("coverImageUrl")}
-              disabled={isSubmitting}
-            />
-            {errors.coverImageUrl && (
-              <p className="text-sm text-red-600">{errors.coverImageUrl.message}</p>
-            )}
+            <Label>Cover Image</Label>
+            
+            {/* File Upload */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverImageChange}
+                  disabled={isSubmitting}
+                  className="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              </div>
+              
+              {/* Preview */}
+              {coverImagePreview && (
+                <div className="relative w-16 h-20 rounded border overflow-hidden">
+                  <Image
+                    src={coverImagePreview}
+                    alt="Cover preview"
+                    fill
+                    className="object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeCoverImage}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                    disabled={isSubmitting}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Alternative URL option */}
+            <div className="pt-2 border-t">
+              <Label htmlFor="coverImageUrl" className="text-sm text-gray-600">Or use image URL</Label>
+              <Input
+                id="coverImageUrl"
+                type="url"
+                placeholder="https://example.com/cover.jpg"
+                {...register("coverImageUrl")}
+                disabled={isSubmitting || !!coverImageFile}
+                className="mt-1"
+              />
+              {errors.coverImageUrl && (
+                <p className="text-sm text-red-600 mt-1">{errors.coverImageUrl.message}</p>
+              )}
+            </div>
+            
             <p className="text-xs text-gray-500">
-              Optional: URL to an existing cover image. Leave empty to use default cover.
+              Upload an image file or provide a URL. Recommended size: 400x600px (2:3 ratio)
             </p>
           </div>
 
