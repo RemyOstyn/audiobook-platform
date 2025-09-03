@@ -5,26 +5,22 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { 
   Plus, 
   Search, 
   Book,
-  Clock,
-  DollarSign,
-  Calendar,
-  User,
   Edit,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Eye
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface Audiobook {
   id: string
@@ -66,23 +62,7 @@ export function AudiobooksListClient() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<AudiobooksResponse['pagination'] | null>(null)
-  
-  // Edit dialog state
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editingAudiobook, setEditingAudiobook] = useState<Audiobook | null>(null)
-  const [editFormData, setEditFormData] = useState({
-    title: '',
-    author: '',
-    narrator: '',
-    description: '',
-    price: 0,
-    status: 'active',
-    cover_image_url: '',
-    isbn: '',
-    publication_year: undefined as number | undefined,
-    categories: [] as string[]
-  })
-  const [isSaving, setIsSaving] = useState(false)
+  const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set())
 
   const fetchAudiobooks = useCallback(async () => {
     try {
@@ -119,95 +99,6 @@ export function AudiobooksListClient() {
     }
   }, [page, searchTerm, statusFilter])
 
-  // Edit functions
-  const openEditDialog = (audiobook: Audiobook) => {
-    setEditingAudiobook(audiobook)
-    setEditFormData({
-      title: audiobook.title,
-      author: audiobook.author,
-      narrator: audiobook.narrator || '',
-      description: audiobook.description || '',
-      price: audiobook.price,
-      status: audiobook.status,
-      cover_image_url: audiobook.cover_image_url || '',
-      isbn: audiobook.isbn || '',
-      publication_year: audiobook.publication_year,
-      categories: audiobook.categories || []
-    })
-    setEditDialogOpen(true)
-  }
-
-  const closeEditDialog = () => {
-    setEditDialogOpen(false)
-    setEditingAudiobook(null)
-    setEditFormData({
-      title: '',
-      author: '',
-      narrator: '',
-      description: '',
-      price: 0,
-      status: 'active',
-      cover_image_url: '',
-      isbn: '',
-      publication_year: undefined,
-      categories: []
-    })
-  }
-
-  const handleSaveEdit = async () => {
-    if (!editingAudiobook) return
-
-    try {
-      setIsSaving(true)
-      
-      // Prepare data for API call
-      const updateData = {
-        title: editFormData.title.trim(),
-        author: editFormData.author.trim(),
-        narrator: editFormData.narrator.trim() || undefined,
-        description: editFormData.description.trim() || undefined,
-        price: editFormData.price,
-        status: editFormData.status,
-        cover_image_url: editFormData.cover_image_url.trim() || undefined,
-        isbn: editFormData.isbn.trim() || undefined,
-        publication_year: editFormData.publication_year,
-        categories: editFormData.categories.filter(cat => cat.trim() !== '')
-      }
-
-      const response = await fetch(`/api/admin/audiobooks/${editingAudiobook.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updateData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to update audiobook')
-      }
-
-      const data = await response.json()
-      
-      // Update the audiobook in the list
-      setAudiobooks(prev => 
-        prev.map(book => 
-          book.id === editingAudiobook.id 
-            ? { ...book, ...data.audiobook }
-            : book
-        )
-      )
-
-      toast.success('Audiobook updated successfully')
-      closeEditDialog()
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update audiobook'
-      toast.error(errorMessage)
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   const handleDelete = async (audiobook: Audiobook, hardDelete = false) => {
     if (!confirm(`Are you sure you want to ${hardDelete ? 'permanently delete' : 'deactivate'} "${audiobook.title}"?`)) {
@@ -247,6 +138,52 @@ export function AudiobooksListClient() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete audiobook'
       toast.error(errorMessage)
+    }
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedBooks(new Set(audiobooks.map(book => book.id)))
+    } else {
+      setSelectedBooks(new Set())
+    }
+  }
+
+  const handleSelectBook = (bookId: string, checked: boolean) => {
+    const newSelected = new Set(selectedBooks)
+    if (checked) {
+      newSelected.add(bookId)
+    } else {
+      newSelected.delete(bookId)
+    }
+    setSelectedBooks(newSelected)
+  }
+
+  const handleBulkStatusChange = async (status: string) => {
+    const selectedIds = Array.from(selectedBooks)
+    if (selectedIds.length === 0) return
+
+    try {
+      const promises = selectedIds.map(id => 
+        fetch(`/api/admin/audiobooks/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        })
+      )
+      
+      await Promise.all(promises)
+      
+      setAudiobooks(prev => 
+        prev.map(book => 
+          selectedIds.includes(book.id) ? { ...book, status } : book
+        )
+      )
+      
+      setSelectedBooks(new Set())
+      toast.success(`Updated ${selectedIds.length} audiobooks`)
+    } catch {
+      toast.error('Failed to update audiobooks')
     }
   }
 
@@ -337,12 +274,21 @@ export function AudiobooksListClient() {
             <option value="inactive">Inactive</option>
           </select>
         </div>
-        <Button asChild>
-          <Link href="/admin/audiobooks/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Upload Audiobook
-          </Link>
-        </Button>
+        <div className="flex items-center space-x-2">
+          {selectedBooks.size > 0 && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">{selectedBooks.size} selected</span>
+              <Button size="sm" variant="outline" onClick={() => handleBulkStatusChange('active')}>Activate</Button>
+              <Button size="sm" variant="outline" onClick={() => handleBulkStatusChange('inactive')}>Deactivate</Button>
+            </div>
+          )}
+          <Button asChild>
+            <Link href="/admin/audiobooks/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Upload Audiobook
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Audiobooks List */}
@@ -390,97 +336,120 @@ export function AudiobooksListClient() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {audiobooks.map((audiobook) => (
-            <Card key={audiobook.id}>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold truncate">
-                        {audiobook.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        by {audiobook.author}
-                      </p>
-                      {audiobook.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2">
-                          {audiobook.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-3 flex-shrink-0">
-                      {getStatusBadge(audiobook.status)}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(audiobook)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(audiobook, false)}
-                            className="text-orange-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Deactivate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(audiobook, true)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Permanently
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-
-                  {/* Metadata */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="h-4 w-4" />
-                      <span>${audiobook.price.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Book className="h-4 w-4" />
-                      <span>{formatFileSize(audiobook.file_size_bytes)}</span>
-                    </div>
-                    {audiobook.duration_seconds && (
-                      <div className="flex items-center space-x-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{Math.round(audiobook.duration_seconds / 60)} min</span>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedBooks.size === audiobooks.length && audiobooks.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead className="w-20"></TableHead>
+                  <TableHead>Audiobook</TableHead>
+                  <TableHead className="w-24">Price</TableHead>
+                  <TableHead className="w-28">Status</TableHead>
+                  <TableHead className="w-24">Size</TableHead>
+                  <TableHead className="w-32">Uploaded</TableHead>
+                  <TableHead className="w-32">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {audiobooks.map((audiobook) => (
+                  <TableRow key={audiobook.id} className="hover:bg-gray-50">
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedBooks.has(audiobook.id)}
+                        onCheckedChange={(checked) => handleSelectBook(audiobook.id, !!checked)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="w-16 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded flex items-center justify-center overflow-hidden">
+                        {audiobook.cover_image_url ? (
+                          <Image
+                            src={audiobook.cover_image_url}
+                            alt={audiobook.title}
+                            width={64}
+                            height={80}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Book className="h-6 w-6 text-blue-600" />
+                        )}
                       </div>
-                    )}
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4" />
-                      <span>{audiobook.uploaded_by}</span>
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-3 w-3" />
-                      <span>
-                        Uploaded {formatDistanceToNow(new Date(audiobook.created_at), { addSuffix: true })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-sm line-clamp-1">{audiobook.title}</h3>
+                        <p className="text-xs text-gray-600">by {audiobook.author}</p>
+                        {audiobook.duration_seconds && (
+                          <p className="text-xs text-gray-500">
+                            {Math.round(audiobook.duration_seconds / 60)} min
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium">${audiobook.price.toFixed(2)}</span>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(audiobook.status)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-gray-600">
+                        {formatFileSize(audiobook.file_size_bytes)}
                       </span>
-                    </div>
-                    <span className="font-medium">
-                      ID: {audiobook.id.slice(0, 8)}...
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-gray-600">
+                        {formatDistanceToNow(new Date(audiobook.created_at), { addSuffix: true })}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-1">
+                        <Button asChild size="sm" variant="ghost">
+                          <Link href={`/audiobooks/${audiobook.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button asChild size="sm" variant="ghost">
+                          <Link href={`/admin/audiobooks/${audiobook.id}/edit`}>
+                            <Edit className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(audiobook, false)}
+                              className="text-orange-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Deactivate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(audiobook, true)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Permanently
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {/* Pagination */}
@@ -515,177 +484,6 @@ export function AudiobooksListClient() {
         </div>
       )}
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Audiobook</DialogTitle>
-          </DialogHeader>
-          
-          {editingAudiobook && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-title">Title *</Label>
-                  <Input
-                    id="edit-title"
-                    value={editFormData.title}
-                    onChange={(e) => setEditFormData(prev => ({
-                      ...prev,
-                      title: e.target.value
-                    }))}
-                    placeholder="Audiobook title"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="edit-author">Author *</Label>
-                  <Input
-                    id="edit-author"
-                    value={editFormData.author}
-                    onChange={(e) => setEditFormData(prev => ({
-                      ...prev,
-                      author: e.target.value
-                    }))}
-                    placeholder="Author name"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-narrator">Narrator</Label>
-                  <Input
-                    id="edit-narrator"
-                    value={editFormData.narrator}
-                    onChange={(e) => setEditFormData(prev => ({
-                      ...prev,
-                      narrator: e.target.value
-                    }))}
-                    placeholder="Narrator name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="edit-price">Price *</Label>
-                  <Input
-                    id="edit-price"
-                    type="number"
-                    min="0"
-                    max="999.99"
-                    step="0.01"
-                    value={editFormData.price}
-                    onChange={(e) => setEditFormData(prev => ({
-                      ...prev,
-                      price: parseFloat(e.target.value) || 0
-                    }))}
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editFormData.description}
-                  onChange={(e) => setEditFormData(prev => ({
-                    ...prev,
-                    description: e.target.value
-                  }))}
-                  placeholder="Book description..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-status">Status</Label>
-                  <Select
-                    value={editFormData.status}
-                    onValueChange={(value) => setEditFormData(prev => ({
-                      ...prev,
-                      status: value
-                    }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-publication-year">Publication Year</Label>
-                  <Input
-                    id="edit-publication-year"
-                    type="number"
-                    min="1000"
-                    max={new Date().getFullYear()}
-                    value={editFormData.publication_year || ''}
-                    onChange={(e) => setEditFormData(prev => ({
-                      ...prev,
-                      publication_year: e.target.value ? parseInt(e.target.value) : undefined
-                    }))}
-                    placeholder="YYYY"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-isbn">ISBN</Label>
-                  <Input
-                    id="edit-isbn"
-                    value={editFormData.isbn}
-                    onChange={(e) => setEditFormData(prev => ({
-                      ...prev,
-                      isbn: e.target.value
-                    }))}
-                    placeholder="ISBN-13"
-                    maxLength={13}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-cover">Cover Image URL</Label>
-                  <Input
-                    id="edit-cover"
-                    type="url"
-                    value={editFormData.cover_image_url}
-                    onChange={(e) => setEditFormData(prev => ({
-                      ...prev,
-                      cover_image_url: e.target.value
-                    }))}
-                    placeholder="https://..."
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={closeEditDialog}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveEdit}
-                  disabled={isSaving || !editFormData.title.trim() || !editFormData.author.trim()}
-                >
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
