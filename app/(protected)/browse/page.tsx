@@ -46,6 +46,8 @@ export default async function BrowsePage({ searchParams }: {
   }
 
   let audiobooks: FormattedAudiobook[] = []
+  let ownedAudiobookIds: string[] = []
+  
   try {
     const { data, error } = await query
 
@@ -65,9 +67,20 @@ export default async function BrowsePage({ searchParams }: {
         rating: undefined // Will be implemented when reviews are added
       })) || []
     }
+
+    // Fetch user's owned audiobooks
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: libraryItems } = await supabase
+        .from('user_library')
+        .select('audiobook_id')
+        .eq('user_id', user.id)
+
+      ownedAudiobookIds = libraryItems?.map(item => item.audiobook_id) || []
+    }
   } catch (error) {
     console.error('Error fetching audiobooks:', error)
   }
 
-  return <BrowsePageClient audiobooks={audiobooks} />
+  return <BrowsePageClient audiobooks={audiobooks} ownedAudiobookIds={ownedAudiobookIds} />
 }

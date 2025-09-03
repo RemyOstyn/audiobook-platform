@@ -1,11 +1,30 @@
-import { createClient } from '@/lib/supabase/server'
+"use client"
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AddToCartButton } from '@/components/add-to-cart-button'
+import { AudioPlayerModal } from '@/components/audio-player-modal'
 import { Book, Star, Clock, User } from 'lucide-react'
+
+interface AudiobookDetails {
+  id: string
+  title: string
+  author: string
+  narrator?: string
+  price: string
+  cover_image_url?: string
+  duration_seconds?: number
+  description?: string
+  categories?: string[]
+  isbn?: string
+  created_at: string
+  status: string
+}
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600)
@@ -18,23 +37,85 @@ function formatDuration(seconds: number): string {
   }
 }
 
-export default async function AudiobookDetailPage({
+export default function AudiobookDetailPage({
   params
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { id } = await params
-  const supabase = await createClient()
+  const [audiobook, setAudiobook] = useState<AudiobookDetails | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [isOwned, setIsOwned] = useState(false)
+  
+  useEffect(() => {
+    async function fetchAudiobook() {
+      const { id } = await params
+      const supabase = createClient()
 
-  // Fetch the specific audiobook
-  const { data: audiobook, error } = await supabase
-    .from('audiobooks')
-    .select('*')
-    .eq('id', id)
-    .eq('status', 'active')
-    .single()
+      // Fetch the specific audiobook
+      const { data, error } = await supabase
+        .from('audiobooks')
+        .select('*')
+        .eq('id', id)
+        .eq('status', 'active')
+        .single()
 
-  if (error || !audiobook) {
+      if (error || !data) {
+        notFound()
+      }
+
+      setAudiobook(data)
+
+      // Check if user owns this audiobook
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: ownedAudiobook } = await supabase
+          .from('user_library')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('audiobook_id', id)
+          .single()
+
+        setIsOwned(!!ownedAudiobook)
+      }
+
+      setLoading(false)
+    }
+
+    fetchAudiobook()
+  }, [params])
+
+  const handlePreview = async () => {
+    if (!audiobook) return
+    
+    setPreviewLoading(true)
+    try {
+      const response = await fetch(`/api/audiobooks/${audiobook.id}/preview`, {
+        method: 'POST'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Preview failed')
+      }
+      
+      const data = await response.json()
+      setPreviewUrl(data.previewUrl)
+      setIsPreviewOpen(true)
+    } catch (error) {
+      console.error('Preview error:', error)
+      alert('Failed to load preview. Please try again.')
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="min-h-screen bg-white flex items-center justify-center">Loading...</div>
+  }
+
+  if (!audiobook) {
     notFound()
   }
 
@@ -84,9 +165,16 @@ export default async function AudiobookDetailPage({
                     }}
                     size="lg"
                     className="w-full bg-blue-600 hover:bg-blue-700"
+                    isOwned={isOwned}
                   />
-                  <Button size="lg" variant="outline" className="w-full">
-                    Preview
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handlePreview}
+                    disabled={previewLoading}
+                  >
+                    {previewLoading ? 'Loading Preview...' : 'Preview'}
                   </Button>
                 </div>
               </div>
@@ -192,6 +280,23 @@ export default async function AudiobookDetailPage({
           </div>
         </div>
       </div>
+      
+      {/* Preview Modal */}
+      {audiobook && (
+        <AudioPlayerModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          audiobook={{
+            id: audiobook.id,
+            title: audiobook.title,
+            author: audiobook.author,
+            coverUrl: audiobook.cover_image_url || ''
+          }}
+          streamUrl={previewUrl}
+          isPreview={true}
+          maxPlayTime={10}
+        />
+      )}
     </div>
   )
 }
