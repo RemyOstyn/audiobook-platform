@@ -1,17 +1,11 @@
 import { inngest } from "../client";
 import { TranscriptionService } from "../../audio/transcription";
 import { ContentGenerationService } from "../../ai/content-generation";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, JobStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Processing job states - must match Prisma JobStatus enum
-enum ProcessingStatus {
-  PENDING = "pending",
-  PROCESSING = "processing", 
-  COMPLETED = "completed",
-  FAILED = "failed",
-}
+// Use Prisma-generated JobStatus enum directly - no need for custom enum
 
 // Processing function that handles the entire audiobook pipeline
 export const processAudiobook = inngest.createFunction(
@@ -32,7 +26,7 @@ export const processAudiobook = inngest.createFunction(
         data: {
           audiobook_id: audiobookId,
           job_type: "transcription",
-          status: ProcessingStatus.PENDING,
+          status: JobStatus.pending,
           progress: 0,
           metadata: {
             fileName,
@@ -58,9 +52,9 @@ export const processAudiobook = inngest.createFunction(
         return book;
       });
 
-      // Step 3: Update status to processing
-      await step.run("update-status-processing", async () => {
-        await updateJobStatus(processingJob.id, ProcessingStatus.PROCESSING, 5, {
+      // Step 3: Update status to downloading
+      await step.run("update-status-downloading", async () => {
+        await updateJobStatus(processingJob.id, JobStatus.downloading, 5, {
           phase: "downloading",
           message: "Starting download from storage...",
         });
@@ -70,10 +64,25 @@ export const processAudiobook = inngest.createFunction(
       const transcriptionResult = await step.run("transcribe-audio", async () => {
         const transcriptionService = new TranscriptionService({
           onProgress: async (progress) => {
-            // Update job progress in real-time - keep status as processing, track phase in metadata
+            // Update job progress with specific status based on phase
             const adjustedProgress = Math.floor(5 + (progress.progress * 0.6)); // Maps 0-100 to 5-65
+            
+            let status: JobStatus;
+            switch(progress.phase) {
+              case 'downloading': 
+                status = JobStatus.downloading; 
+                break;
+              case 'chunking': 
+                status = JobStatus.chunking; 
+                break;
+              case 'transcribing': 
+                status = JobStatus.transcribing; 
+                break;
+              default: 
+                status = JobStatus.processing;
+            }
 
-            await updateJobStatus(processingJob.id, ProcessingStatus.PROCESSING, adjustedProgress, {
+            await updateJobStatus(processingJob.id, status, adjustedProgress, {
               phase: progress.phase,
               message: progress.message,
               chunksProcessed: progress.chunksProcessed,
@@ -97,7 +106,7 @@ export const processAudiobook = inngest.createFunction(
 
       // Step 5: Save transcription to database
       const transcriptionRecord = await step.run("save-transcription", async () => {
-        await updateJobStatus(processingJob.id, ProcessingStatus.PROCESSING, 70, {
+        await updateJobStatus(processingJob.id, JobStatus.processing, 70, {
           phase: "saving",
           message: "Saving transcription to database...",
         });
@@ -115,7 +124,7 @@ export const processAudiobook = inngest.createFunction(
 
       // Step 6: Generate AI content
       const aiContent = await step.run("generate-ai-content", async () => {
-        await updateJobStatus(processingJob.id, ProcessingStatus.PROCESSING, 75, {
+        await updateJobStatus(processingJob.id, JobStatus.generating_content, 75, {
           phase: "generating_content",
           message: "Generating description and categories with AI...",
         });
@@ -129,7 +138,7 @@ export const processAudiobook = inngest.createFunction(
 
       // Step 7: Update audiobook with generated content
       await step.run("update-audiobook-content", async () => {
-        await updateJobStatus(processingJob.id, ProcessingStatus.PROCESSING, 90, {
+        await updateJobStatus(processingJob.id, JobStatus.processing, 90, {
           phase: "updating",
           message: "Updating audiobook with generated content...",
         });
@@ -155,7 +164,7 @@ export const processAudiobook = inngest.createFunction(
         await prisma.processingJob.update({
           where: { id: processingJob.id },
           data: {
-            status: ProcessingStatus.COMPLETED,
+            status: JobStatus.completed,
             progress: 100,
             completed_at: endTime,
             metadata: {
@@ -202,7 +211,7 @@ export const processAudiobook = inngest.createFunction(
         await prisma.processingJob.update({
           where: { id: processingJob.id },
           data: {
-            status: ProcessingStatus.FAILED,
+            status: JobStatus.failed,
             progress: 0,
             error_message: error instanceof Error ? error.message : "Unknown error",
             completed_at: new Date(),
@@ -236,7 +245,7 @@ export const processAudiobook = inngest.createFunction(
 // Helper function to update job status
 async function updateJobStatus(
   jobId: string,
-  status: ProcessingStatus,
+  status: JobStatus,
   progress: number,
   metadata?: Record<string, unknown>
 ): Promise<void> {
