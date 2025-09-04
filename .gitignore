@@ -45,3 +45,6 @@ next-env.d.ts
 
 # MCPs
 .mcp.json
+
+# Development logs
+dev.log
