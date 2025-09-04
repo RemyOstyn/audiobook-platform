@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-type UploadStep = 'file' | 'metadata' | 'uploading' | 'success'
+type UploadStep = 'file' | 'metadata' | 'uploading'
 
 export function UploadPageClient() {
   const router = useRouter()
@@ -18,7 +18,6 @@ export function UploadPageClient() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [createdAudiobook, setCreatedAudiobook] = useState<{ id: string; title: string } | null>(null)
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file)
@@ -115,10 +114,9 @@ export function UploadPageClient() {
               throw new Error(error.error || 'Failed to create audiobook record')
             }
 
-            const result = await completeResponse.json()
-            setCreatedAudiobook(result.audiobook)
-            setStep('success')
-            toast.success('Audiobook uploaded successfully!')
+            await completeResponse.json()
+            toast.success('Audiobook uploaded successfully! Redirecting to processing page...')
+            router.push('/admin/processing-jobs')
           } catch (error) {
             console.error('Complete upload error:', error)
             toast.error(error instanceof Error ? error.message : 'Failed to create audiobook')
@@ -208,32 +206,6 @@ export function UploadPageClient() {
           </div>
         )
 
-      case 'success':
-        return (
-          <div className="text-center py-12 space-y-4">
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-green-600">Upload Successful!</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Your audiobook &quot;{createdAudiobook?.title}&quot; has been uploaded and is now being processed.
-            </p>
-            <div className="flex justify-center space-x-3 pt-6">
-              <Button onClick={() => router.push('/admin/audiobooks')}>
-                View All Audiobooks
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setStep('file')
-                  setSelectedFile(null)
-                  setUploadProgress(0)
-                  setCreatedAudiobook(null)
-                }}
-              >
-                Upload Another
-              </Button>
-            </div>
-          </div>
-        )
 
       default:
         return null
@@ -250,8 +222,7 @@ export function UploadPageClient() {
             Back
           </Link>
         </Button>
-        {step !== 'success' && (
-          <div className="flex items-center space-x-2 text-xs">
+        <div className="flex items-center space-x-2 text-xs">
             <div className={`flex items-center space-x-1 ${step === 'file' ? 'text-blue-600' : 'text-gray-400'}`}>
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium
                 ${step === 'file' ? 'bg-blue-600 text-white' : 
@@ -271,8 +242,7 @@ export function UploadPageClient() {
               </div>
               <span>Details</span>
             </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Main Content */}
