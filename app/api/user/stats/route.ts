@@ -6,9 +6,11 @@ interface AudiobookData {
   id: string
   title: string
   author: string
+  cover_image_url?: string
 }
 
-interface OrderItemData {
+// Supabase returns audiobook as an array due to the foreign key relationship syntax
+interface OrderItem {
   id: string
   price: string
   audiobook: AudiobookData[]
@@ -53,7 +55,8 @@ export async function GET() {
             audiobook:audiobooks (
               id,
               title,
-              author
+              author,
+              cover_image_url
             )
           )
         `)
@@ -74,13 +77,13 @@ export async function GET() {
 
     // Format recent activity - flatten order items into individual purchase records
     const recentPurchases = recentActivityResult.data?.flatMap(order => 
-      (order.order_items || []).map((item: OrderItemData) => ({
+      (order.order_items || []).map((item: OrderItem) => ({
         id: `${order.id}-${item.id}`, // Unique ID for each item
         audiobook: {
           id: item.audiobook[0]?.id || '',
           title: item.audiobook[0]?.title || 'Unknown',
           author: item.audiobook[0]?.author || 'Unknown',
-          coverImageUrl: null // This field wasn't queried in the select
+          coverImageUrl: item.audiobook[0]?.cover_image_url || null
         },
         price: parseFloat(item.price),
         purchasedAt: order.completed_at,
