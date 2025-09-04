@@ -72,8 +72,8 @@ export const processAudiobook = inngest.createFunction(
               case 'downloading': 
                 status = JobStatus.downloading; 
                 break;
-              case 'chunking': 
-                status = JobStatus.chunking; 
+              case 'validating': 
+                status = JobStatus.processing; 
                 break;
               case 'transcribing': 
                 status = JobStatus.transcribing; 
@@ -85,9 +85,6 @@ export const processAudiobook = inngest.createFunction(
             await updateJobStatus(processingJob.id, status, adjustedProgress, {
               phase: progress.phase,
               message: progress.message,
-              chunksProcessed: progress.chunksProcessed,
-              totalChunks: progress.totalChunks,
-              currentChunk: progress.currentChunk,
             });
           },
         });
