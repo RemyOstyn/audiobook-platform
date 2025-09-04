@@ -135,7 +135,8 @@ export class TranscriptionService {
     try {
       // Create unique temporary directory for this job
       const jobTempDir = path.join(this.tempDir, `job-${audiobookId}-${Date.now()}`);
-      const originalFilePath = path.join(jobTempDir, "original_audio");
+      const fileExtension = path.extname(fileName);
+      const originalFilePath = path.join(jobTempDir, `original_audio${fileExtension}`);
 
       await fs.mkdir(jobTempDir, { recursive: true });
 
